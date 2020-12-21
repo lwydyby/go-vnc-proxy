@@ -1,0 +1,8 @@
+AppInfo:
+  Name: "VncProxy"
+  Port: 9090
+  Level: debug
+  TLS: false
+  TLSKey: "./etc/tls/client-key.pem"
+  TLSCert: "./etc/tls/client-cert.pem"
+  TLSCaCerts: "./etc/tls/ca-cert.pem"
