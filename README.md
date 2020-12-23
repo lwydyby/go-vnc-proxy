@@ -58,7 +58,7 @@ go-vnc-proxy is a VNC proxy library for Go
  
  func main() {
  	http.HandleFunc("/ws", proxyHandler)
- 	log.Info("gostack vnc proxy start success ^ - ^  websocket port: " + strconv.Itoa(conf.Conf.AppInfo.Port))
+ 	log.Info("vnc proxy start success ^ - ^  websocket port: " + strconv.Itoa(conf.Conf.AppInfo.Port))
  	if err := http.ListenAndServe(":"+strconv.Itoa(conf.Conf.AppInfo.Port), nil); err != nil {
  		fmt.Println(err)
  		os.Exit(1)
@@ -96,7 +96,7 @@ go-vnc-proxy is a VNC proxy library for Go
  func NewVNCProxy() *proxy.Proxy {
  	return proxy.New(&proxy.Config{
  		LogLevel: logLevel,
- 		TokenHandler: func(r *http.Request) (addr, instanceId string, err error) {
+ 		TokenHandler: func(r *http.Request) (addr string, err error) {
  			defer func() {
  				// 处理所有异常，防止panic导致程序关闭
  				if p := recover(); p != nil {
@@ -134,6 +134,7 @@ go-vnc-proxy is a VNC proxy library for Go
  		log.SetLevel(log.DebugLevel)
  	}
  }
+
 
  ````
  

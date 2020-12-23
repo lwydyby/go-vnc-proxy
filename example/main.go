@@ -41,7 +41,7 @@ func init() {
 
 func main() {
 	http.HandleFunc("/ws", proxyHandler)
-	log.Info("gostack vnc proxy start success ^ - ^  websocket port: " + strconv.Itoa(conf.Conf.AppInfo.Port))
+	log.Info("vnc proxy start success ^ - ^  websocket port: " + strconv.Itoa(conf.Conf.AppInfo.Port))
 	if err := http.ListenAndServe(":"+strconv.Itoa(conf.Conf.AppInfo.Port), nil); err != nil {
 		fmt.Println(err)
 		os.Exit(1)
