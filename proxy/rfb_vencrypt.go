@@ -133,23 +133,26 @@ func SecurityHandshake(serverName string, target net.Conn) (net.Conn, error) {
 	if byte2int(authAccepted) == 0 {
 		return nil, errors.New("Server didn't accept the requested auth sub-type ")
 	}
-	cert, err := tls.LoadX509KeyPair(conf.Conf.AppInfo.TLSCert, conf.Conf.AppInfo.TLSKey)
-	if err != nil {
-		panic(err)
-	}
-	certBytes, err := ioutil.ReadFile(conf.Conf.AppInfo.TLSCaCerts)
-	if err != nil {
-		panic(err)
-	}
-	clientCertPool := x509.NewCertPool()
-	ok := clientCertPool.AppendCertsFromPEM(certBytes)
-	if !ok {
-		panic(err)
-	}
 	config := &tls.Config{
 		InsecureSkipVerify: true,
-		RootCAs:            clientCertPool,
-		Certificates:       []tls.Certificate{cert},
+	}
+	//fixme 对于没有使用双向加密的vnc,可能不需要证书
+	if conf.Conf.AppInfo.TLSCert != "" {
+		cert, err := tls.LoadX509KeyPair(conf.Conf.AppInfo.TLSCert, conf.Conf.AppInfo.TLSKey)
+		if err != nil {
+			panic(err)
+		}
+		certBytes, err := ioutil.ReadFile(conf.Conf.AppInfo.TLSCaCerts)
+		if err != nil {
+			panic(err)
+		}
+		clientCertPool := x509.NewCertPool()
+		ok := clientCertPool.AppendCertsFromPEM(certBytes)
+		if !ok {
+			panic(err)
+		}
+		config.RootCAs = clientCertPool
+		config.Certificates = []tls.Certificate{cert}
 	}
 	conn := tls.Client(target, config)
 	return conn, nil
