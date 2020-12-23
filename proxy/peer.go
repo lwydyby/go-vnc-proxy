@@ -1,9 +1,9 @@
 package proxy
 
 import (
+	"github.com/lwydyby/go-vnc-proxy/conf"
 	"github.com/pkg/errors"
 	"io"
-	"lwydyby/go-vnc-proxy/conf"
 	"net"
 	"strings"
 	"time"

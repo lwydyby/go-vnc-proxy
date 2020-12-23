@@ -1,4 +1,4 @@
-module lwydyby/go-vnc-proxy
+module github.com/lwydyby/go-vnc-proxy
 
 go 1.13
 

@@ -10,7 +10,7 @@ go-vnc-proxy是一个代理vnc连接的库(将vnc连接代理转发给websocket)
 ## 使用说明
  
  ````shell script
-   go get gitee.com/lwydyby/go-vnc-proxy
+   go get github.com/lwydyby/go-vnc-proxy
   ````
   ### code 使用实例
   ````go
