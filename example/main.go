@@ -79,7 +79,7 @@ func getGID() uint64 {
 func NewVNCProxy() *proxy.Proxy {
 	return proxy.New(&proxy.Config{
 		LogLevel: logLevel,
-		TokenHandler: func(r *http.Request) (addr, instanceId string, err error) {
+		TokenHandler: func(r *http.Request) (addr string, err error) {
 			defer func() {
 				// 处理所有异常，防止panic导致程序关闭
 				if p := recover(); p != nil {

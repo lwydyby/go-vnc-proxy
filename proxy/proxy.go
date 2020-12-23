@@ -8,7 +8,7 @@ import (
 	"sync"
 )
 
-type TokenHandler func(r *http.Request) (addr, instanceId string,err error)
+type TokenHandler func(r *http.Request) (addr string, err error)
 
 type Config struct {
 	LogLevel uint32
@@ -24,8 +24,8 @@ type Proxy struct {
 
 func New(conf *Config) *Proxy {
 	if conf.TokenHandler == nil {
-		conf.TokenHandler = func(r *http.Request) (addr, instanceId string, err error) {
-			return ":5901", "", nil
+		conf.TokenHandler = func(r *http.Request) (addr string, err error) {
+			return ":5901", nil
 		}
 	}
 
@@ -49,7 +49,7 @@ func (p *Proxy) ServeWS(ws *websocket.Conn) {
 	log.Debugf("request url: %v", r.URL)
 
 	// get vnc backend server addr
-	addr, instanceId, err := p.tokenHandler(r)
+	addr, err := p.tokenHandler(r)
 	if err != nil {
 		log.Infof("get vnc backend failed: %v", err)
 		return
@@ -62,11 +62,11 @@ func (p *Proxy) ServeWS(ws *websocket.Conn) {
 	}
 
 	p.addPeer(peer)
-	defer func(instanceId string) {
+	defer func() {
 		log.Info("close peer")
 		p.deletePeer(peer)
 
-	}(instanceId)
+	}()
 
 	go func() {
 		if err := peer.ReadTarget(); err != nil {
@@ -103,5 +103,3 @@ func (p *Proxy) deletePeer(peer *peer) {
 func (p *Proxy) Peers() map[*peer]struct{} {
 	return p.peers
 }
-
-
