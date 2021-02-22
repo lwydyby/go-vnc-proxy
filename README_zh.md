@@ -146,5 +146,7 @@ go-vnc-proxy是一个代理vnc连接的库(将vnc连接代理转发给websocket)
 ```
 
 注: 如果后续增加了多节点管理 参数可以通过param获取
-  instance_id: 虚机ID
-  token: 后端验证token
+
+  - instance_id: 虚机ID
+
+  - token: 后端验证token
