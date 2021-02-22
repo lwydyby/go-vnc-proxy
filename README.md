@@ -137,4 +137,12 @@ go-vnc-proxy is a VNC proxy library for Go
 
 
  ````
+
+## WEB
+
+The configuration needs to be modified
+
+```
+    VNC:"localhost:8080"  //vnc proxy url
+```
  
