@@ -145,4 +145,5 @@ The configuration needs to be modified
 ```
     VNC:"localhost:8080"  //vnc proxy url
 ```
- 
+
+![demo](static/img.png)

@@ -150,3 +150,5 @@ go-vnc-proxy是一个代理vnc连接的库(将vnc连接代理转发给websocket)
   - instance_id: 虚机ID
 
   - token: 后端验证token
+
+![demo](static/img.png)
