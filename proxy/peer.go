@@ -1,7 +1,6 @@
 package proxy
 
 import (
-	"github.com/lwydyby/go-vnc-proxy/conf"
 	"github.com/pkg/errors"
 	"io"
 	"net"
@@ -39,12 +38,12 @@ func NewPeer(ws *websocket.Conn, addr string) (*peer, error) {
 	if err != nil {
 		return nil, errors.Wrap(err, "set vnc backend connection keepalive period failed")
 	}
-	if conf.Conf.AppInfo.TLS {
-		c, err = Connect(addr, ws, c)
-		if err != nil {
-			return nil, err
-		}
+
+	c, err = Connect(addr, ws, c)
+	if err != nil {
+		return nil, err
 	}
+
 	return &peer{
 		source: ws,
 		target: c,
