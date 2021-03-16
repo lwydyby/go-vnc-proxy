@@ -13,6 +13,8 @@ import (
 	"net"
 	"reflect"
 	"strconv"
+	"strings"
+	"time"
 	"unsafe"
 )
 
@@ -34,8 +36,15 @@ var (
 	X509NONE          = 260
 )
 
-func Connect(serverName string, source net.Conn, target net.Conn) (net.Conn, error) {
-
+func Connect(addr string, source net.Conn, target net.Conn) (net.Conn, error) {
+	isVencrypt, err := checkIsVencrypt(addr)
+	if err != nil {
+		return nil, err
+	}
+	if !isVencrypt {
+		return target, nil
+	}
+	serverName := strings.Split(addr, ":")[0]
 	targetVersion, err := recv(target, VERSION_LENGTH)
 	if err != nil {
 		return nil, err
@@ -88,6 +97,45 @@ func Connect(serverName string, source net.Conn, target net.Conn) (net.Conn, err
 	}
 	target.Write(f)
 	return SecurityHandshake(serverName, target)
+}
+
+func checkIsVencrypt(addr string) (bool, error) {
+	target, err := net.DialTimeout("tcp", addr, 5*time.Second)
+	if err != nil {
+		return false, err
+	}
+	targetVersion, err := recv(target, VERSION_LENGTH)
+	if err != nil {
+		return false, err
+	}
+	tv := parseVersion(targetVersion)
+	if tv != 3.8 {
+		return false, errors.New("Security proxying requires RFB protocol version 3.8 , but tenant asked for " + string(targetVersion))
+	}
+	_, err = target.Write(targetVersion)
+	if err != nil {
+		return false, err
+	}
+	authType, err := recv(target, 1)
+	if err != nil {
+		return false, err
+	}
+	if byte2int(authType) == 0 {
+		return false, errors.New("negotiation failed: " + string(authType))
+	}
+	f, err := recv(target, byte2int(authType))
+	if err != nil {
+		return false, err
+	}
+	permittedAuthType := make([]int, 0)
+	for _, t := range f {
+		permittedAuthType = append(permittedAuthType, int(t))
+	}
+	err = target.Close()
+	if err != nil {
+		return false, err
+	}
+	return permittedAuthType[0] == VENCRYPT, nil
 }
 
 func SecurityHandshake(serverName string, target net.Conn) (net.Conn, error) {

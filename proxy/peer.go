@@ -5,7 +5,6 @@ import (
 	"github.com/pkg/errors"
 	"io"
 	"net"
-	"strings"
 	"time"
 
 	"golang.org/x/net/websocket"
@@ -41,7 +40,7 @@ func NewPeer(ws *websocket.Conn, addr string) (*peer, error) {
 		return nil, errors.Wrap(err, "set vnc backend connection keepalive period failed")
 	}
 	if conf.Conf.AppInfo.TLS {
-		c, err = Connect(strings.Split(addr, ":")[0], ws, c)
+		c, err = Connect(addr, ws, c)
 		if err != nil {
 			return nil, err
 		}
