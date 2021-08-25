@@ -1,7 +1,7 @@
 package proxy
 
 import (
-	log "github.com/sirupsen/logrus"
+	log "github.com/lwydyby/logrus"
 	"golang.org/x/net/websocket"
 	"net/http"
 	"strings"

@@ -2,6 +2,7 @@ package main
 
 import (
 	"bytes"
+	"context"
 	"errors"
 	"fmt"
 	"github.com/lwydyby/go-vnc-proxy/conf"
@@ -16,7 +17,6 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
-	"strings"
 	"time"
 )
 
@@ -61,8 +61,12 @@ func (s *LogFormatter) Format(entry *log.Entry) ([]byte, error) {
 		file = filepath.Base(entry.Caller.File)
 		line = entry.Caller.Line
 	}
-	level := strings.ToUpper(entry.Level.String())
-	msg := fmt.Sprintf("%-15s [%-3d] [%-5s]  %s:%d %s\n", timestamp, getGID(), level, file, line, entry.Message)
+	level := entry.Level.String()
+	if entry.Context == nil || entry.Context.Value("trace_id") == "" {
+		uuid, _ := GenerateUUID()
+		entry.Context = context.WithValue(context.Background(), "trace_id", uuid)
+	}
+	msg := fmt.Sprintf("%-15s [%-3d] [%-5s] [%s] %s:%d %s\n", timestamp, getGID(), level, entry.Context.Value("trace_id"), file, line, entry.Message)
 	return []byte(msg), nil
 }
 
@@ -94,6 +98,9 @@ func NewVNCProxy() *proxy.Proxy {
 }
 
 func proxyHandler(w http.ResponseWriter, r *http.Request) {
+	uuid, _ := GenerateUUID()
+	hook := proxy.AddTraceIdHook(uuid)
+	defer proxy.RemoveTraceHook(hook)
 	vncProxy := NewVNCProxy()
 	h := websocket.Handler(vncProxy.ServeWS)
 	h.ServeHTTP(w, r)
