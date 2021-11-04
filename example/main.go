@@ -5,8 +5,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	g_websocket "github.com/gorilla/websocket"
 	"github.com/lwydyby/go-vnc-proxy/conf"
 	"github.com/lwydyby/go-vnc-proxy/proxy"
+	"github.com/lwydyby/go-vnc-proxy/ssh"
 	log "github.com/sirupsen/logrus"
 	"golang.org/x/net/websocket"
 	"gopkg.in/yaml.v2"
@@ -17,6 +19,7 @@ import (
 	"runtime"
 	"runtime/debug"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -41,6 +44,7 @@ func init() {
 
 func main() {
 	http.HandleFunc("/ws", proxyHandler)
+	http.HandleFunc("/ssh", sshHandler)
 	log.Info("vnc proxy start success ^ - ^  websocket port: " + strconv.Itoa(conf.Conf.AppInfo.Port))
 	if err := http.ListenAndServe(":"+strconv.Itoa(conf.Conf.AppInfo.Port), nil); err != nil {
 		fmt.Println(err)
@@ -104,6 +108,103 @@ func proxyHandler(w http.ResponseWriter, r *http.Request) {
 	vncProxy := NewVNCProxy()
 	h := websocket.Handler(vncProxy.ServeWS)
 	h.ServeHTTP(w, r)
+}
+
+func sshHandler(w http.ResponseWriter, r *http.Request) {
+	upgrader := g_websocket.Upgrader{
+		ReadBufferSize:  1024,
+		WriteBufferSize: 1024 * 10,
+		CheckOrigin: func(r *http.Request) bool {
+			return true
+		},
+	}
+	wsConn, err := upgrader.Upgrade(w, r, nil)
+	if err != nil {
+		w.Write([]byte("websocket create failed"))
+		return
+	}
+	defer wsConn.Close()
+	var config *ssh.SSHClientConfig
+	authModel, err := getQuery(r, "auth_model")
+	if err != nil {
+		wsConn.WriteControl(g_websocket.CloseMessage,
+			[]byte(err.Error()), time.Now().Add(time.Second))
+		return
+	}
+	user, err := getQuery(r, "user")
+	if err != nil {
+		wsConn.WriteControl(g_websocket.CloseMessage,
+			[]byte(err.Error()), time.Now().Add(time.Second))
+		return
+	}
+	addr, err := getQuery(r, "addr")
+	if err != nil {
+		wsConn.WriteControl(g_websocket.CloseMessage,
+			[]byte(err.Error()), time.Now().Add(time.Second))
+		return
+	}
+	port, err := getQuery(r, "port")
+	if err != nil {
+		port = "22"
+	}
+	switch authModel {
+	case "password":
+		pwd, err := getQuery(r, "pwd")
+		if err != nil {
+			wsConn.WriteControl(g_websocket.CloseMessage,
+				[]byte(err.Error()), time.Now().Add(time.Second))
+			return
+		}
+		config = &ssh.SSHClientConfig{
+			AuthModel: ssh.PASSWORD,
+			HostAddr:  addr + ":" + port,
+			User:      user,
+			Password:  pwd,
+			Timeout:   5 * time.Second,
+		}
+	case "key":
+		//路径直接传输私钥有问题 暂不支持
+		//todo 先提供上传私钥接口 返回文件ID 连接时携带这个ID进行匹配
+		w.Write([]byte("failed"))
+		return
+	}
+	client, err := ssh.NewSSHClient(config)
+	if err != nil {
+		wsConn.WriteControl(g_websocket.CloseMessage,
+			[]byte(err.Error()), time.Now().Add(time.Second))
+		return
+	}
+	defer client.Close()
+	turn, err := ssh.NewTurn(wsConn, client)
+
+	if err != nil {
+		wsConn.WriteControl(g_websocket.CloseMessage,
+			[]byte(err.Error()), time.Now().Add(time.Second))
+		return
+	}
+	defer turn.Close()
+	var logBuff = ssh.BufPool.Get().(*bytes.Buffer)
+	logBuff.Reset()
+	defer ssh.BufPool.Put(logBuff)
+	ctx, cancel := context.WithCancel(context.Background())
+	wg := sync.WaitGroup{}
+	wg.Add(2)
+	go func() {
+		defer wg.Done()
+		err := turn.LoopRead(logBuff, ctx)
+		if err != nil {
+			log.Printf("%#v", err)
+		}
+	}()
+	go func() {
+		defer wg.Done()
+		err := turn.SessionWait()
+		if err != nil {
+			log.Printf("%#v", err)
+		}
+		cancel()
+	}()
+	wg.Wait()
 }
 
 func getQuery(r *http.Request, key string) (string, error) {
